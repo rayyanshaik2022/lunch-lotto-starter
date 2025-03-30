@@ -10,6 +10,7 @@ let spinTimeout = null;
 let spinAngleStart = 0;
 let spinTime = 0;
 let spinTimeTotal = 0;
+let selectedHistory = []; // Add history array
 
 function scaleCanvas(canvas, ctx) {
     const pixelRatio = window.devicePixelRatio || 1;
@@ -159,7 +160,13 @@ function truncateOption(option) {
       const normalizedDegrees = degrees % 360;
       const selectedIndex = Math.floor(normalizedDegrees / (360 / options.length));
       const selectedOption = options[options.length - 1 - selectedIndex];
-        
+      
+      // Add to history using the function from popup.js
+      chrome.runtime.sendMessage({
+        type: 'addToHistory',
+        restaurant: selectedOption
+      });
+      
       // Motivational messages to encourage the user
       const messages = [
         "Time to fuel your body with something nutritious! 🍎",

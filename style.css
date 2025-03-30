@@ -45,6 +45,10 @@ html, body {
 #spin {
     font-weight: bold;
   }
+
+#history-btn {
+    font-weight: bold;
+}
   
 /* Style for the Settings Button */
 #open-settings {

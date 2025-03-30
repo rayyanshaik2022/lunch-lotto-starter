@@ -10,3 +10,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     });
   }
 });
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'addToHistory') {
+    
+    // Signal (send) the message to the popup script
+    chrome.runtime.sendMessage({
+      type: 'addToHistory',
+      restaurant: request.restaurant
+    });
+  }
+});

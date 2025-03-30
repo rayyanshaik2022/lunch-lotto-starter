@@ -1,8 +1,9 @@
-const apiKey = "YOUR_API_KEY";
+const apiKey = "add-your-api-key-here";
 const defaultSettings = {
   distance: 0.5,       // Default search radius in miles
   price: "2,3",        // Google Places API uses 1-4 ($ - $$$$)
   dietary: "",         // Empty means no filter (future: vegetarian, gluten-free, etc.)
+  history: []          // Add history to default settings
 };
 // Convert miles to meters (Google Maps API uses meters)
 function milesToMeters(miles) {
@@ -16,6 +17,34 @@ async function loadSettings() {
       resolve(settings);
     });
   });
+}
+
+// Save history to Chrome storage
+async function saveHistory(history) {
+  return new Promise((resolve) => {
+    chrome.storage.sync.set({ history }, () => {
+      resolve();
+    });
+  });
+}
+
+// Add to history and save
+async function addToHistory(restaurant) {
+  const settings = await loadSettings();
+  const history = settings.history || [];
+  history.push({
+    name: restaurant.name,
+    timestamp: new Date().toLocaleString(),
+    googleMapsLink: restaurant.googleMapsLink
+  });
+  
+  // Keep only the last 10 selections
+  if (history.length > 10) {
+    history.shift();
+  }
+  
+  await saveHistory(history);
+  console.log("Updated History:", history);
 }
 
 async function fetchRestaurants() {
@@ -35,6 +64,8 @@ async function fetchRestaurants() {
   
         if (!data.results || data.results.length === 0) {
           console.error("❌ No restaurants found!");
+          console.debug(response);
+          console.debug(data);
           alert("No restaurants found! Try adjusting your settings.");
           return;
         }
@@ -67,6 +98,9 @@ async function fetchRestaurants() {
           acc[r.name] = r;
           return acc;
         }, {});
+  
+        // Log current history
+        console.log("Current History:", settings.history || []);
   
         // ⏳ Wait 5 seconds before showing the wheel
         setTimeout(() => {
@@ -129,12 +163,58 @@ function hideSettings() {
   document.getElementById("settings-view").style.display = "none";
 }
 
+// Show history view
+function showHistory() {
+  document.getElementById("main-view").style.display = "none";
+  document.getElementById("settings-view").style.display = "none";
+  document.getElementById("history-view").style.display = "block";
+  loadHistory();
+}
+
+// Hide history view
+function hideHistory() {
+  document.getElementById("main-view").style.display = "block";
+  document.getElementById("history-view").style.display = "none";
+}
+
+// Load and display history
+async function loadHistory() {
+  const settings = await loadSettings();
+  const historyList = document.getElementById("history-list");
+  
+  if (!settings.history || settings.history.length === 0) {
+    historyList.innerHTML = '<div class="no-history">No lunch history yet. Start spinning to create some!</div>';
+    return;
+  }
+
+  // Sort history by timestamp (newest first)
+  const sortedHistory = settings.history.sort((a, b) => 
+    new Date(b.timestamp) - new Date(a.timestamp)
+  );
+
+  historyList.innerHTML = sortedHistory.map(item => `
+    <div class="history-item">
+      <div class="history-info">
+        <div class="history-name">${item.name}</div>
+        <div class="history-time">${item.timestamp}</div>
+      </div>
+      <a href="${item.googleMapsLink}" target="_blank" class="history-link">View on Maps</a>
+    </div>
+  `).join('');
+}
+
 // Ensure scripts run only after DOM is loaded
 document.addEventListener("DOMContentLoaded", async () => {
   await fetchRestaurants();
 
   // Spin button event
   document.getElementById("spin").addEventListener("click", () => spin());
+
+  // History button event
+  document.getElementById("history-btn").addEventListener("click", showHistory);
+
+  // Close history view
+  document.getElementById("close-history").addEventListener("click", hideHistory);
 
   // Open settings view
   document.getElementById("open-settings").addEventListener("click", showSettings);
@@ -146,6 +226,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const settings = await loadSettings();
   document.getElementById("distance").value = settings.distance;
   document.getElementById("price").value = settings.price;
+
+  // Add message listener for history updates
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === 'addToHistory') {
+      addToHistory(request.restaurant);
+    }
+  });
 
   // Save settings
   document.getElementById("save-settings").addEventListener("click", async () => {

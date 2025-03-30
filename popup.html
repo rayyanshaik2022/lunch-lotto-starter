@@ -22,6 +22,7 @@
         <img id="loading-gif" src="assets/loading.gif" alt="Loading..." style="display: none;">
         <canvas id="wheel" width="310" height="310"></canvas>
         <button id="spin">Spin</button>
+        <button id="history-btn">History</button>
       </div>
       <!-- 🏆 Selected Restaurant Result -->
       <div id="result-container" style="display: none;">
@@ -51,6 +52,13 @@
       <button id="save-settings">Save</button>
       <button id="close-settings">Back</button>
     </div>
+  </div>
+
+  <!-- History View -->
+  <div id="history-view" class="view">
+    <h2>Your Lunch History</h2>
+    <div id="history-list"></div>
+    <button id="close-history">Back</button>
   </div>
 
   <script src="libs/sweetalert.min.js"></script>
